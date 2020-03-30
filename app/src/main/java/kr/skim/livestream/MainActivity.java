@@ -1,11 +1,11 @@
 /*
  * Copyright (c) 2014 Google Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
@@ -53,12 +53,11 @@ import kr.skim.livestream.util.YouTubeApi;
 
 /**
  * @author Ibrahim Ulukaya <ulukaya@google.com>
- *         <p/>
- *         Main activity class which handles authorization and intents.
+ * <p/>
+ * Main activity class which handles authorization and intents.
  */
-public class MainActivity extends Activity implements
-        EventsListFragment.Callbacks {
-    public static final String ACCOUNT_KEY = "AIzaSyB-rQ6A4lFhIBdmcavwYGBue0LiQyH5mkc";
+public class MainActivity extends Activity implements EventsListFragment.Callbacks {
+    public static final String ACCOUNT_KEY = "ACCOUNT_KEY";
     public static final String APP_NAME = "WatchMe";
     private static final int REQUEST_GOOGLE_PLAY_SERVICES = 0;
     private static final int REQUEST_GMS_ERROR_DIALOG = 1;
@@ -80,8 +79,7 @@ public class MainActivity extends Activity implements
 
         ensureLoader();
 
-        credential = GoogleAccountCredential.usingOAuth2(
-                getApplicationContext(), Arrays.asList(Utils.SCOPES));
+        credential = GoogleAccountCredential.usingOAuth2(getApplicationContext(), Arrays.asList(Utils.SCOPES));
         // set exponential backoff policy
         credential.setBackOff(new ExponentialBackOff());
 
@@ -104,8 +102,7 @@ public class MainActivity extends Activity implements
 
         new StartEventTask().execute(broadcastId);
 
-        Intent intent = new Intent(getApplicationContext(),
-                StreamerActivity.class);
+        Intent intent = new Intent(getApplicationContext(), StreamerActivity.class);
         intent.putExtra(YouTubeApi.RTMP_URL_KEY, event.getIngestionAddress());
         intent.putExtra(YouTubeApi.BROADCAST_ID_KEY, broadcastId);
 
@@ -132,15 +129,13 @@ public class MainActivity extends Activity implements
     }
 
     private void loadAccount() {
-        SharedPreferences sp = PreferenceManager
-                .getDefaultSharedPreferences(this);
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         mChosenAccountName = sp.getString(ACCOUNT_KEY, null);
         invalidateOptionsMenu();
     }
 
     private void saveAccount() {
-        SharedPreferences sp = PreferenceManager
-                .getDefaultSharedPreferences(this);
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         sp.edit().putString(ACCOUNT_KEY, mChosenAccountName).apply();
     }
 
@@ -195,10 +190,8 @@ public class MainActivity extends Activity implements
                 }
                 break;
             case REQUEST_ACCOUNT_PICKER:
-                if (resultCode == Activity.RESULT_OK && data != null
-                        && data.getExtras() != null) {
-                    String accountName = data.getExtras().getString(
-                            AccountManager.KEY_ACCOUNT_NAME);
+                if (resultCode == Activity.RESULT_OK && data != null && data.getExtras() != null) {
+                    String accountName = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
                     if (accountName != null) {
                         mChosenAccountName = accountName;
                         credential.setSelectedAccountName(accountName);
@@ -207,8 +200,7 @@ public class MainActivity extends Activity implements
                 }
                 break;
             case REQUEST_STREAMER:
-                if (resultCode == Activity.RESULT_OK && data != null
-                        && data.getExtras() != null) {
+                if (resultCode == Activity.RESULT_OK && data != null && data.getExtras() != null) {
                     String broadcastId = data.getStringExtra(YouTubeApi.BROADCAST_ID_KEY);
                     if (broadcastId != null) {
                         new EndEventTask().execute(broadcastId);
@@ -240,9 +232,7 @@ public class MainActivity extends Activity implements
             final int connectionStatusCode) {
         runOnUiThread(new Runnable() {
             public void run() {
-                Dialog dialog = GooglePlayServicesUtil.getErrorDialog(
-                        connectionStatusCode, MainActivity.this,
-                        REQUEST_GOOGLE_PLAY_SERVICES);
+                Dialog dialog = GooglePlayServicesUtil.getErrorDialog(connectionStatusCode, MainActivity.this, REQUEST_GOOGLE_PLAY_SERVICES);
                 dialog.show();
             }
         });
@@ -270,8 +260,7 @@ public class MainActivity extends Activity implements
     }
 
     private void chooseAccount() {
-        startActivityForResult(credential.newChooseAccountIntent(),
-                REQUEST_ACCOUNT_PICKER);
+        startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
     }
 
     @Override
@@ -289,22 +278,17 @@ public class MainActivity extends Activity implements
         startStreaming(liveBroadcast);
     }
 
-    private class GetLiveEventsTask extends
-            AsyncTask<Void, Void, List<EventData>> {
+    private class GetLiveEventsTask extends AsyncTask<Void, Void, List<EventData>> {
         private ProgressDialog progressDialog;
 
         @Override
         protected void onPreExecute() {
-            progressDialog = ProgressDialog.show(MainActivity.this, null,
-                    getResources().getText(R.string.loadingEvents), true);
+            progressDialog = ProgressDialog.show(MainActivity.this, null, getResources().getText(R.string.loadingEvents), true);
         }
 
         @Override
-        protected List<EventData> doInBackground(
-                Void... params) {
-            YouTube youtube = new YouTube.Builder(transport, jsonFactory,
-                    credential).setApplicationName(APP_NAME)
-                    .build();
+        protected List<EventData> doInBackground(Void... params) {
+            YouTube youtube = new YouTube.Builder(transport, jsonFactory, credential).setApplicationName(APP_NAME).build();
             try {
                 return YouTubeApi.getLiveEvents(youtube);
             } catch (UserRecoverableAuthIOException e) {
@@ -334,20 +318,15 @@ public class MainActivity extends Activity implements
 
         @Override
         protected void onPreExecute() {
-            progressDialog = ProgressDialog.show(MainActivity.this, null,
-                    getResources().getText(R.string.creatingEvent), true);
+            progressDialog = ProgressDialog.show(MainActivity.this, null, getResources().getText(R.string.creatingEvent), true);
         }
 
         @Override
-        protected List<EventData> doInBackground(
-                Void... params) {
-            YouTube youtube = new YouTube.Builder(transport, jsonFactory,
-                    credential).setApplicationName(APP_NAME)
-                    .build();
+        protected List<EventData> doInBackground(Void... params) {
+            YouTube youtube = new YouTube.Builder(transport, jsonFactory, credential).setApplicationName(APP_NAME).build();
             try {
                 String date = new Date().toString();
-                YouTubeApi.createLiveEvent(youtube, "Event - " + date,
-                        "A live streaming event - " + date);
+                YouTubeApi.createLiveEvent(youtube, "Event - " + date, "A live streaming event - " + date);
                 return YouTubeApi.getLiveEvents(youtube);
 
             } catch (UserRecoverableAuthIOException e) {
@@ -405,15 +384,12 @@ public class MainActivity extends Activity implements
 
         @Override
         protected void onPreExecute() {
-            progressDialog = ProgressDialog.show(MainActivity.this, null,
-                    getResources().getText(R.string.endingEvent), true);
+            progressDialog = ProgressDialog.show(MainActivity.this, null, getResources().getText(R.string.endingEvent), true);
         }
 
         @Override
         protected Void doInBackground(String... params) {
-            YouTube youtube = new YouTube.Builder(transport, jsonFactory,
-                    credential).setApplicationName(APP_NAME)
-                    .build();
+            YouTube youtube = new YouTube.Builder(transport, jsonFactory, credential).setApplicationName(APP_NAME).build();
             try {
                 if (params.length >= 1) {
                     YouTubeApi.endEvent(youtube, params[0]);

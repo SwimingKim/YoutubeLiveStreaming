@@ -40,8 +40,8 @@ import kr.skim.livestream.util.YouTubeApi;
 public class StreamerActivity extends Activity {
     // CONSTANTS
     // TODO: Stop hardcoding this and read values from the camera's supported sizes.
-    public static final int CAMERA_WIDTH = 640;
-    public static final int CAMERA_HEIGHT = 480;
+    public static final int CAMERA_WIDTH = 1920;
+    public static final int CAMERA_HEIGHT = 1080;
     private static final int REQUEST_CAMERA_MICROPHONE = 0;
 
     // Member variables

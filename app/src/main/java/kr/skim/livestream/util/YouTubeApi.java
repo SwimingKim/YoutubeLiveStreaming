@@ -61,9 +61,7 @@ public class YouTubeApi {
         futureDate.setTime(futureDateMillis);
         String date = dateFormat.format(futureDate);
 
-        Log.i(MainActivity.APP_NAME, String.format(
-                "Creating event: name='%s', description='%s', date='%s'.",
-                name, description, date));
+        Log.i(MainActivity.APP_NAME, String.format("Creating event: name='%s', description='%s', date='%s'.", name, description, date));
 
         try {
 
@@ -101,7 +99,7 @@ public class YouTubeApi {
             // Create content distribution network with format and ingestion
             // type.
             CdnSettings cdn = new CdnSettings();
-            cdn.setFormat("240p");
+            cdn.setFormat("1080p");
             cdn.setIngestionType("rtmp");
 
             LiveStream stream = new LiveStream();
@@ -110,16 +108,13 @@ public class YouTubeApi {
             stream.setCdn(cdn);
 
             // Create the insert request
-            YouTube.LiveStreams.Insert liveStreamInsert = youtube.liveStreams()
-                    .insert("snippet,cdn", stream);
+            YouTube.LiveStreams.Insert liveStreamInsert = youtube.liveStreams().insert("snippet,cdn", stream);
 
             // Request is executed and inserted stream is returned
             LiveStream returnedStream = liveStreamInsert.execute();
 
             // Create the bind request
-            YouTube.LiveBroadcasts.Bind liveBroadcastBind = youtube
-                    .liveBroadcasts().bind(returnedBroadcast.getId(),
-                            "id,contentDetails");
+            YouTube.LiveBroadcasts.Bind liveBroadcastBind = youtube.liveBroadcasts().bind(returnedBroadcast.getId(),                     "id,contentDetails");
 
             // Set stream id to bind
             liveBroadcastBind.setStreamId(returnedStream.getId());
@@ -143,12 +138,10 @@ public class YouTubeApi {
     }
 
     // TODO: Catch those exceptions and handle them here.
-    public static List<EventData> getLiveEvents(
-            YouTube youtube) throws IOException {
+    public static List<EventData> getLiveEvents(YouTube youtube) throws IOException {
         Log.i(MainActivity.APP_NAME, "Requesting live events.");
 
-        YouTube.LiveBroadcasts.List liveBroadcastRequest = youtube
-                .liveBroadcasts().list("id,snippet,contentDetails");
+        YouTube.LiveBroadcasts.List liveBroadcastRequest = youtube.liveBroadcasts().list("id,snippet,contentDetails");
         // liveBroadcastRequest.setMine(true);
         liveBroadcastRequest.setBroadcastStatus("upcoming");
 
@@ -183,22 +176,18 @@ public class YouTubeApi {
             Log.e(MainActivity.APP_NAME, "", e);
         }
 
-        Transition transitionRequest = youtube.liveBroadcasts().transition(
-                "live", broadcastId, "status");
+        Transition transitionRequest = youtube.liveBroadcasts().transition("live", broadcastId, "status");
         transitionRequest.execute();
     }
 
-    public static void endEvent(YouTube youtube, String broadcastId)
-            throws IOException {
-        Transition transitionRequest = youtube.liveBroadcasts().transition(
-                "complete", broadcastId, "status");
+    public static void endEvent(YouTube youtube, String broadcastId) throws IOException {
+        Transition transitionRequest = youtube.liveBroadcasts().transition("complete", broadcastId, "status");
         transitionRequest.execute();
     }
 
     public static String getIngestionAddress(YouTube youtube, String streamId)
             throws IOException {
-        YouTube.LiveStreams.List liveStreamRequest = youtube.liveStreams()
-                .list("cdn");
+        YouTube.LiveStreams.List liveStreamRequest = youtube.liveStreams().list("cdn");
         liveStreamRequest.setId(streamId);
         LiveStreamListResponse returnedStream = liveStreamRequest.execute();
 
@@ -207,7 +196,6 @@ public class YouTubeApi {
             return "";
         }
         IngestionInfo ingestionInfo = streamList.get(0).getCdn().getIngestionInfo();
-        return ingestionInfo.getIngestionAddress() + "/"
-                + ingestionInfo.getStreamName();
+        return ingestionInfo.getIngestionAddress() + "/" + ingestionInfo.getStreamName();
     }
 }

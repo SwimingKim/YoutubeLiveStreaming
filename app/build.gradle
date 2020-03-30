@@ -21,7 +21,6 @@ android {
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
-        signingConfig signingConfigs.config
         sourceSets.main {
             jniLibs.srcDir 'src/main/libs'
             jni.srcDirs = [] //disable automatic ndk-build call
@@ -35,9 +34,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
         debug {
             minifyEnabled false
+            signingConfig signingConfigs.config
         }
     }
     packagingOptions {
