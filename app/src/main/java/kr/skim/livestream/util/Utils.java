@@ -37,36 +37,8 @@ import kr.skim.livestream.R;
  */
 public class Utils {
     public static final String[] SCOPES = {Scopes.PROFILE, YouTubeScopes.YOUTUBE};
-    private static Camera camera;
 
     private Utils() {
-    }
-
-    public static Camera getCamera(int cameraType) {
-        if (camera == null) {
-            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-            for (int i = 0; i < Camera.getNumberOfCameras(); i++) {
-                Camera.getCameraInfo(i, cameraInfo);
-                if (cameraInfo.facing == cameraType) {
-                    try {
-                        camera = Camera.open(i);
-                    } catch (RuntimeException e) {
-                        Log.e(MainActivity.APP_NAME, String.format("Couldn't open camera type '%d'.", cameraType), e);
-                    }
-                }
-            }
-
-            if (camera == null) {
-                camera = Camera.open();
-            }
-        }
-
-        return camera;
-    }
-
-    public static void releaseCamera() {
-        camera.release();
-        camera = null;
     }
 
     public static boolean hasFroyo() {

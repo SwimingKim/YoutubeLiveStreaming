@@ -20,13 +20,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.Camera;
-import android.hardware.Camera.CameraInfo;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
-
-import kr.skim.livestream.util.Utils;
 
 /**
  * @author Ibrahim Ulukaya <ulukaya@google.com>
@@ -37,8 +33,6 @@ public class StreamerService extends Service {
     private static int STREAMER_NOTIFICATION_ID = 1001;
     private final IBinder binder = new LocalBinder();
     // Member variables.
-    private VideoStreamingConnection connection;
-    private Camera camera;
 
     @Override
     public void onCreate() {
@@ -52,7 +46,6 @@ public class StreamerService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        camera = Utils.getCamera(CameraInfo.CAMERA_FACING_FRONT);
         Log.d(MainActivity.APP_NAME, "onBind");
         return binder;
     }
@@ -64,37 +57,15 @@ public class StreamerService extends Service {
         return false;
     }
 
-    public void startStreaming(String streamUrl) {
+    public void startStreaming() {
         Log.d(MainActivity.APP_NAME, "startStreaming");
         showForegroundNotification();
-        connection = new VideoStreamingConnection();
-        // TODO Pass an actual preview surface.
-        connection.open(streamUrl, camera, null);
     }
 
     public void stopStreaming() {
         Log.d(MainActivity.APP_NAME, "stopStreaming");
 
-        if (connection != null) {
-            connection.close();
-        }
-        connection = null;
         stopForeground(true);
-    }
-
-    public boolean isStreaming() {
-        return (connection != null);
-    }
-
-    public void releaseCamera() {
-        Log.d(MainActivity.APP_NAME, "releaseCamera");
-        if (!isStreaming() && camera != null) {
-            Utils.releaseCamera();
-            Log.d(MainActivity.APP_NAME, "Camera was released.");
-            camera = null;
-        } else {
-            Log.d(MainActivity.APP_NAME, "Camera was not released.");
-        }
     }
 
     private void showForegroundNotification() {

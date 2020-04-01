@@ -43,7 +43,7 @@ import kr.skim.livestream.MainActivity;
 
 public class YouTubeApi {
 
-    public static final String RTMP_URL_KEY = "rtmpUrl";
+    public static final String RTMP_URL_KEY = "rtmp://a.rtmp.youtube.com/live2";
     public static final String BROADCAST_ID_KEY = "broadcastId";
     private static final int FUTURE_DATE_OFFSET_MILLIS = 5 * 1000;
 
@@ -52,8 +52,7 @@ public class YouTubeApi {
         // We need a date that's in the proper ISO format and is in the future,
         // since the API won't
         // create events that start in the past.
-        SimpleDateFormat dateFormat = new SimpleDateFormat(
-                "yyyy-MM-dd'T'HH:mm:ss'Z'");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         long futureDateMillis = System.currentTimeMillis()
                 + FUTURE_DATE_OFFSET_MILLIS;

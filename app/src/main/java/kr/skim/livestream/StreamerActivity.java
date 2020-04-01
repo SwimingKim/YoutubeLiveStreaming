@@ -19,23 +19,33 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.hardware.Camera;
+import android.graphics.Matrix;
+import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
+import android.view.TextureView;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import kr.skim.livestream.util.Utils;
+import androidx.annotation.NonNull;
+
+import com.pedro.encoder.input.video.CameraHelper;
+import com.pedro.rtplibrary.rtmp.RtmpCamera2;
+
+import net.ossrs.rtmp.ConnectCheckerRtmp;
+
 import kr.skim.livestream.util.YouTubeApi;
 
 
 /**
  * @author Ibrahim Ulukaya <ulukaya@google.com>
- *         <p/>
- *         StreamerActivity class which previews the camera and streams via StreamerService.
+ * <p/>
+ * StreamerActivity class which previews the camera and streams via StreamerService.
  */
 public class StreamerActivity extends Activity {
     // CONSTANTS
@@ -44,10 +54,10 @@ public class StreamerActivity extends Activity {
     public static final int CAMERA_HEIGHT = 1080;
     private static final int REQUEST_CAMERA_MICROPHONE = 0;
 
-    // Member variables
+    private TextureView textureView;
+    private RtmpCamera2 camera2;
     private StreamerService streamerService;
     private PowerManager.WakeLock wakeLock;
-    private Preview preview;
     private String rtmpUrl;
     private ServiceConnection streamerConnection = new ServiceConnection() {
         @Override
@@ -56,8 +66,9 @@ public class StreamerActivity extends Activity {
 
             streamerService = ((StreamerService.LocalBinder) service).getService();
 
-            restoreStateFromService();
-            startStreaming();
+            int rotation = CameraHelper.getCameraOrientation(getApplicationContext());
+            if (camera2.prepareAudio() && camera2.prepareVideo(CAMERA_WIDTH, CAMERA_HEIGHT, 30, 1200 * 1024, false, rotation))
+                startStreaming();
         }
 
         @Override
@@ -87,7 +98,101 @@ public class StreamerActivity extends Activity {
         Log.i(MainActivity.APP_NAME, String.format("Got RTMP URL '%s' from calling activity.", rtmpUrl));
 
         setContentView(R.layout.streamer);
-        preview = (Preview) findViewById(R.id.surfaceViewPreview);
+
+        textureView = (TextureView) findViewById(R.id.textureView);
+        textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                int viewWidth = 1280;
+                int viewHeight = 720;
+                Matrix matrix = new Matrix();
+                RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+                RectF bufferRect = new RectF(0, 0, CAMERA_HEIGHT, CAMERA_WIDTH);
+                float centerX = viewRect.centerX();
+                float centerY = viewRect.centerY();
+                bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+                matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+                matrix.postScale(0.5f, 0.5f, centerX, centerY);
+                matrix.postRotate(-90, centerX, centerY);
+                textureView.setTransform(matrix);
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+                camera2.startPreview();
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+                if (camera2.isStreaming()) {
+                    camera2.stopStream();
+                }
+                camera2.stopPreview();
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+            }
+        });
+        camera2 = new RtmpCamera2(textureView, new ConnectCheckerRtmp() {
+            @Override
+            public void onConnectionSuccessRtmp() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StreamerActivity.this, "Connection success", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onConnectionFailedRtmp(@NonNull final String reason) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StreamerActivity.this, "Connection failed. " + reason, Toast.LENGTH_SHORT).show();
+                        camera2.stopStream();
+                    }
+                });
+            }
+
+            @Override
+            public void onNewBitrateRtmp(long bitrate) {
+
+            }
+
+            @Override
+            public void onDisconnectRtmp() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StreamerActivity.this, "Disconnected", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onAuthErrorRtmp() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StreamerActivity.this, "Auth error", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onAuthSuccessRtmp() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StreamerActivity.this, "Auth success", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
 
         if (!bindService(new Intent(this, StreamerService.class), streamerConnection,
                 BIND_AUTO_CREATE | BIND_DEBUG_UNBIND)) {
@@ -99,8 +204,10 @@ public class StreamerActivity extends Activity {
             @Override
             public void onClick(View v) {
                 if (toggleButton.isChecked()) {
-                    streamerService.startStreaming(rtmpUrl);
+                    camera2.startStream(rtmpUrl);
+                    streamerService.startStreaming();
                 } else {
+                    camera2.stopStream();
                     streamerService.stopStreaming();
                 }
             }
@@ -112,10 +219,6 @@ public class StreamerActivity extends Activity {
         Log.d(MainActivity.APP_NAME, "onResume");
 
         super.onResume();
-
-        if (streamerService != null) {
-            restoreStateFromService();
-        }
     }
 
     @Override
@@ -124,12 +227,8 @@ public class StreamerActivity extends Activity {
 
         super.onPause();
 
-        if (preview != null) {
-            preview.setCamera(null);
-        }
-
-        if (streamerService != null) {
-            streamerService.releaseCamera();
+        if (camera2 != null) {
+            camera2.stopPreview();
         }
     }
 
@@ -145,13 +244,9 @@ public class StreamerActivity extends Activity {
 
         stopStreaming();
 
-        if (streamerService != null) {
-            streamerService.releaseCamera();
+        if (camera2 != null) {
+            camera2.stopPreview();
         }
-    }
-
-    private void restoreStateFromService() {
-        preview.setCamera(Utils.getCamera(Camera.CameraInfo.CAMERA_FACING_FRONT));
     }
 
     private void startStreaming() {
@@ -161,82 +256,12 @@ public class StreamerActivity extends Activity {
         wakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, this.getClass().getName());
         wakeLock.acquire();
 
-        if (!streamerService.isStreaming()) {
-            streamerService.startStreaming(rtmpUrl);
+        streamerService.startStreaming();
+
+        if (camera2 != null) {
+            camera2.startStream(rtmpUrl);
         }
-
-//            String cameraPermission = Manifest.permission.CAMERA;
-//            String microphonePermission = Manifest.permission.RECORD_AUDIO;
-//            int hasCamPermission = checkSelfPermission(cameraPermission);
-//            int hasMicPermission = checkSelfPermission(microphonePermission);
-//            List<String> permissions = new ArrayList<String>();
-//            if (hasCamPermission != PackageManager.PERMISSION_GRANTED) {
-//                permissions.add(cameraPermission);
-//                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-//                        Manifest.permission.CAMERA)) {
-//                    // Provide rationale in Snackbar to request permission
-//                    Snackbar.make(preview, R.string.permission_camera_rationale,
-//                            Snackbar.LENGTH_INDEFINITE).show();
-//                } else {
-//                    // Explain in Snackbar to turn on permission in settings
-//                    Snackbar.make(preview, R.string.permission_camera_explain,
-//                            Snackbar.LENGTH_INDEFINITE).show();
-//                }
-//            }
-//            if (hasMicPermission != PackageManager.PERMISSION_GRANTED) {
-//                permissions.add(microphonePermission);
-//                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-//                        Manifest.permission.RECORD_AUDIO)) {
-//                    // Provide rationale in Snackbar to request permission
-//                    Snackbar.make(preview, R.string.permission_microphone_rationale,
-//                            Snackbar.LENGTH_INDEFINITE).show();
-//                } else {
-//                    // Explain in Snackbar to turn on permission in settings
-//                    Snackbar.make(preview, R.string.permission_microphone_explain,
-//                            Snackbar.LENGTH_INDEFINITE).show();
-//                }
-//            }
-//            if (!permissions.isEmpty()) {
-//                String[] params = permissions.toArray(new String[permissions.size()]);
-//                ActivityCompat.requestPermissions(this, params, REQUEST_CAMERA_MICROPHONE);
-//            } else {
-//                // We already have permission, so handle as normal
-//                streamerService.startStreaming(rtmpUrl);
-//            }
-//        }
     }
-
-    /**
-     * Callback received when a permissions request has been completed.
-     */
-//    @Override
-//    public void onRequestPermissionsResult(int requestCode,
-//                                           String permissions[], int[] grantResults) {
-//        switch (requestCode) {
-//            case REQUEST_CAMERA_MICROPHONE: {
-//                Log.i(MainActivity.APP_NAME, "Received response for camera with mic permissions request.");
-//
-//                // We have requested multiple permissions for contacts, so all of them need to be
-//                // checked.
-//                if (Utils.verifyPermissions(grantResults)) {
-//                    // permissions were granted, yay! do the
-//                    // streamer task you need to do.
-//                    streamerService.startStreaming(rtmpUrl);
-//                } else {
-//                    Log.i(MainActivity.APP_NAME, "Camera with mic permissions were NOT granted.");
-//                    Snackbar.make(preview, R.string.permissions_not_granted,
-//                            Snackbar.LENGTH_SHORT)
-//                            .show();
-//                }
-//                break;
-//            }
-//
-//            // other 'switch' lines to check for other
-//            // permissions this app might request
-//        }
-//        return;
-//    }
-
 
     private void stopStreaming() {
         Log.d(MainActivity.APP_NAME, "stopStreaming");
@@ -246,9 +271,7 @@ public class StreamerActivity extends Activity {
             wakeLock = null;
         }
 
-        if (streamerService.isStreaming()) {
-            streamerService.stopStreaming();
-        }
+        streamerService.stopStreaming();
     }
 
     public void endEvent(View view) {
