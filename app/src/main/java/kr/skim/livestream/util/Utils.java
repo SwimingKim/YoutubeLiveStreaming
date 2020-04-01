@@ -18,7 +18,6 @@ package kr.skim.livestream.util;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.hardware.Camera;
 import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
@@ -29,7 +28,6 @@ import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.youtube.YouTubeScopes;
 
-import kr.skim.livestream.MainActivity;
 import kr.skim.livestream.R;
 
 /**
